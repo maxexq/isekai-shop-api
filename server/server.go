@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
 	"github.com/maxexq/isekei-shop-api/config"
 	"gorm.io/gorm"
@@ -44,6 +45,16 @@ func NewEchoServer(conf *config.Config, db *gorm.DB) *echoServer {
 }
 
 func (s *echoServer) Start() {
+
+	corsMiddleware := getCORSMiddleware(s.conf.Server.AllowedOrigins)
+	bodyLimitMiddleware := getBodyLimitMiddleware(s.conf.Server.BodyLimit)
+	timeOutMiddleware := getTimeoutMiddleware(s.conf.Server.TimeOut)
+
+	s.app.Use(middleware.Recover())
+	s.app.Use(middleware.Logger())
+	s.app.Use(corsMiddleware)
+	s.app.Use(bodyLimitMiddleware)
+	s.app.Use(timeOutMiddleware)
 
 	s.app.GET("/v1/health", s.healthCheck)
 
@@ -79,4 +90,25 @@ func (s *echoServer) gracefullyShutdown(quitCh chan os.Signal) {
 	}
 
 	s.app.Logger.Info("Server gracefully stopped.")
+}
+
+func getTimeoutMiddleware(timeout time.Duration) echo.MiddlewareFunc {
+	return middleware.TimeoutWithConfig(middleware.TimeoutConfig{
+		Skipper:      middleware.DefaultSkipper,
+		ErrorMessage: "Request Timeout",
+		Timeout:      timeout * time.Second,
+	})
+}
+
+func getCORSMiddleware(allowOrigins []string) echo.MiddlewareFunc {
+	return middleware.CORSWithConfig(middleware.CORSConfig{
+		Skipper:      middleware.DefaultSkipper,
+		AllowOrigins: allowOrigins,
+		AllowMethods: []string{echo.GET, echo.POST, echo.PUT, echo.PATCH, echo.DELETE},
+		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
+	})
+}
+
+func getBodyLimitMiddleware(bodyLimit string) echo.MiddlewareFunc {
+	return middleware.BodyLimit(bodyLimit)
 }
