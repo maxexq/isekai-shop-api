@@ -14,5 +14,4 @@ func main() {
 	server := server.NewEchoServer(conf, db.ConnectionGetting())
 
 	server.Start()
-
 }
