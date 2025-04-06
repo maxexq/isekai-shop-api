@@ -4,41 +4,49 @@ import (
 	"github.com/maxexq/isekei-shop-api/config"
 	"github.com/maxexq/isekei-shop-api/databases"
 	"github.com/maxexq/isekei-shop-api/entities"
+	"gorm.io/gorm"
 )
 
 func main() {
 	conf := config.ConfigGetting()
 	db := databases.NewPosgresDatabase(conf.Database)
 
-	playerMigration(db)
-	adminMigration(db)
-	itemMigration(db)
-	playerCoinMigration(db)
-	inventoryMigration(db)
-	purchaseHistoryMigration(db)
+	tx := db.ConnectionGetting().Begin()
+
+	playerMigration(tx)
+	adminMigration(tx)
+	itemMigration(tx)
+	playerCoinMigration(tx)
+	inventoryMigration(tx)
+	purchaseHistoryMigration(tx)
+
+	if err := tx.Commit().Error; err != nil {
+		tx.Rollback()
+		panic(err)
+	}
 
 }
 
-func playerMigration(db databases.Database) {
-	db.ConnectionGetting().Migrator().CreateTable(&entities.Player{})
+func playerMigration(tx *gorm.DB) {
+	tx.Migrator().CreateTable(&entities.Player{})
 }
 
-func adminMigration(db databases.Database) {
-	db.ConnectionGetting().Migrator().CreateTable(&entities.Admin{})
+func adminMigration(tx *gorm.DB) {
+	tx.Migrator().CreateTable(&entities.Admin{})
 }
 
-func itemMigration(db databases.Database) {
-	db.ConnectionGetting().Migrator().CreateTable(&entities.Item{})
+func itemMigration(tx *gorm.DB) {
+	tx.Migrator().CreateTable(&entities.Item{})
 }
 
-func playerCoinMigration(db databases.Database) {
-	db.ConnectionGetting().Migrator().CreateTable(&entities.PlayerCoin{})
+func playerCoinMigration(tx *gorm.DB) {
+	tx.Migrator().CreateTable(&entities.PlayerCoin{})
 }
 
-func inventoryMigration(db databases.Database) {
-	db.ConnectionGetting().Migrator().CreateTable(&entities.Inventory{})
+func inventoryMigration(tx *gorm.DB) {
+	tx.Migrator().CreateTable(&entities.Inventory{})
 }
 
-func purchaseHistoryMigration(db databases.Database) {
-	db.ConnectionGetting().Migrator().CreateTable(&entities.PurchaseHistory{})
+func purchaseHistoryMigration(tx *gorm.DB) {
+	tx.Migrator().CreateTable(&entities.PurchaseHistory{})
 }
