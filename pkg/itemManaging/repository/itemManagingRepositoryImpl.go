@@ -6,6 +6,7 @@ import (
 	"gorm.io/gorm"
 
 	_itemManagingException "github.com/maxexq/isekei-shop-api/pkg/itemManaging/exception"
+	_itemManagingModel "github.com/maxexq/isekei-shop-api/pkg/itemManaging/model"
 )
 
 type itemManagingRepositoryImpl struct {
@@ -31,4 +32,12 @@ func (r *itemManagingRepositoryImpl) Creating(itemEntity *entities.Item) (*entit
 	}
 
 	return item, nil
+}
+
+func (r *itemManagingRepositoryImpl) Editing(itemID uint64, itemEditingReq *_itemManagingModel.ItemEditingReq) (uint64, error) {
+	if err := r.db.Model(&entities.Item{}).Where("id = ?", itemID).Updates(itemEditingReq).Error; err != nil {
+		r.logger.Errorf("Editing item failed: %s", err.Error())
+	}
+
+	return itemID, nil
 }

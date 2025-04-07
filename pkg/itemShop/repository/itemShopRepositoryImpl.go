@@ -51,6 +51,18 @@ func (r *itemShopRepositoryImpl) Counting(itemFilter *_itemShopModel.ItemFilter)
 	return count, nil
 }
 
+func (r *itemShopRepositoryImpl) FindByID(itemID uint64) (*entities.Item, error) {
+	item := new(entities.Item)
+
+	if err := r.db.First(item, itemID).Error; err != nil {
+		r.logger.Errorf("Failed to find item by ID: %s", err.Error())
+
+		return nil, &_itemShopException.ItemNotFound{}
+	}
+
+	return item, nil
+}
+
 func (r *itemShopRepositoryImpl) buildItemFilterQuery(itemFilter *_itemShopModel.ItemFilter) *gorm.DB {
 	query := r.db.Model(&entities.Item{}).Where("is_achive = ?", false)
 
