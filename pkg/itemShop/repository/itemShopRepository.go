@@ -2,8 +2,9 @@ package repository
 
 import (
 	"github.com/maxexq/isekei-shop-api/entities"
+	_itemShopModel "github.com/maxexq/isekei-shop-api/pkg/itemShop/model"
 )
 
 type ItemShopRepository interface {
-	Listing() ([]*entities.Item, error)
+	Listing(itemFilter *_itemShopModel.ItemFilter) ([]*entities.Item, error)
 }

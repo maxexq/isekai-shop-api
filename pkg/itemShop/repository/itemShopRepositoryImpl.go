@@ -6,6 +6,7 @@ import (
 	"gorm.io/gorm"
 
 	_itemShopException "github.com/maxexq/isekei-shop-api/pkg/itemShop/exception"
+	_itemShopModel "github.com/maxexq/isekei-shop-api/pkg/itemShop/model"
 )
 
 type itemShopRepositoryImpl struct {
@@ -17,10 +18,20 @@ func NewItemShopRepositoryImpl(db *gorm.DB, logger echo.Logger) ItemShopReposito
 	return &itemShopRepositoryImpl{db, logger}
 }
 
-func (r *itemShopRepositoryImpl) Listing() ([]*entities.Item, error) {
+func (r *itemShopRepositoryImpl) Listing(itemFilter *_itemShopModel.ItemFilter) ([]*entities.Item, error) {
 	itemList := make([]*entities.Item, 0)
 
-	if err := r.db.Find(&itemList).Error; err != nil {
+	query := r.db.Model(&entities.Item{})
+
+	if itemFilter.Name != "" {
+		query = query.Where("name like ?", "%"+itemFilter.Name+"%")
+	}
+
+	if itemFilter.Description != "" {
+		query = query.Where("description like ?", "%"+itemFilter.Description+"%")
+	}
+
+	if err := query.Find(&itemList).Error; err != nil {
 		r.logger.Errorf("Failed to list items: %s", err.Error())
 
 		return nil, &_itemShopException.ItemListing{}
