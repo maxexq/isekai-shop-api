@@ -64,7 +64,7 @@ func (r *itemShopRepositoryImpl) FindByID(itemID uint64) (*entities.Item, error)
 }
 
 func (r *itemShopRepositoryImpl) buildItemFilterQuery(itemFilter *_itemShopModel.ItemFilter) *gorm.DB {
-	query := r.db.Model(&entities.Item{}).Where("is_achive = ?", false)
+	query := r.db.Model(&entities.Item{}).Where("is_archive = ?", false)
 
 	if name := strings.TrimSpace(itemFilter.Name); name != "" {
 		query = query.Where("name ILIKE ?", "%"+name+"%")
