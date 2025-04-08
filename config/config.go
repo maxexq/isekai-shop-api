@@ -13,7 +13,6 @@ type (
 	Config struct {
 		Server   *Server   `mapstructure:"server" validate:"required"`
 		OAuth2   *OAuth2   `mapstructure:"oauth2" validate:"required"`
-		State    *State    `mapstructure:"state" validate:"required"`
 		Database *Database `mapstructure:"database" validate:"required"`
 	}
 
@@ -38,12 +37,6 @@ type (
 		AuthUrl       string `mapstructure:"authUrl" validate:"required"`
 		TokenUrl      string `mapstructure:"tokenUrl" validate:"required"`
 		DeviceAuthUrl string `mapstructure:"deviceAuthUrl" validate:"required"`
-	}
-
-	State struct {
-		Secret    string        `mapstructure:"secret" validate:"required"`
-		ExpiresAt time.Duration `mapstructure:"expiresAt" validate:"required"`
-		Issuer    string        `mapstructure:"issuer" validate:"required"`
 	}
 
 	Database struct {
