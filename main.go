@@ -11,7 +11,7 @@ func main() {
 
 	db := databases.NewPosgresDatabase(conf.Database)
 
-	server := server.NewEchoServer(conf, db.ConnectionGetting())
+	server := server.NewEchoServer(conf, db)
 
 	server.Start()
 }

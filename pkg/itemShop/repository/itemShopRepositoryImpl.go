@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/labstack/echo/v4"
+	"github.com/maxexq/isekei-shop-api/databases"
 	"github.com/maxexq/isekei-shop-api/entities"
 	"gorm.io/gorm"
 
@@ -12,11 +13,11 @@ import (
 )
 
 type itemShopRepositoryImpl struct {
-	db     *gorm.DB
+	db     databases.Database
 	logger echo.Logger
 }
 
-func NewItemShopRepositoryImpl(db *gorm.DB, logger echo.Logger) ItemShopRepository {
+func NewItemShopRepositoryImpl(db databases.Database, logger echo.Logger) ItemShopRepository {
 	return &itemShopRepositoryImpl{db, logger}
 }
 
@@ -54,7 +55,7 @@ func (r *itemShopRepositoryImpl) Counting(itemFilter *_itemShopModel.ItemFilter)
 func (r *itemShopRepositoryImpl) FindByID(itemID uint64) (*entities.Item, error) {
 	item := new(entities.Item)
 
-	if err := r.db.First(item, itemID).Error; err != nil {
+	if err := r.db.Connect().First(item, itemID).Error; err != nil {
 		r.logger.Errorf("Failed to find item by ID: %s", err.Error())
 
 		return nil, &_itemShopException.ItemNotFound{}
@@ -64,7 +65,7 @@ func (r *itemShopRepositoryImpl) FindByID(itemID uint64) (*entities.Item, error)
 }
 
 func (r *itemShopRepositoryImpl) buildItemFilterQuery(itemFilter *_itemShopModel.ItemFilter) *gorm.DB {
-	query := r.db.Model(&entities.Item{}).Where("is_archive = ?", false)
+	query := r.db.Connect().Model(&entities.Item{}).Where("is_archive = ?", false)
 
 	if name := strings.TrimSpace(itemFilter.Name); name != "" {
 		query = query.Where("name ILIKE ?", "%"+name+"%")

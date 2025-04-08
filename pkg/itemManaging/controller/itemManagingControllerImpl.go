@@ -31,7 +31,7 @@ func (c *itemManagingControllerImpl) Creating(pctx echo.Context) error {
 
 	item, err := c.itemManagingService.Creating(itemCreatingReq)
 	if err != nil {
-		return err
+		return custom.Error(pctx, http.StatusBadRequest, err.Error())
 	}
 
 	return pctx.JSON(http.StatusCreated, item)
@@ -57,6 +57,19 @@ func (c *itemManagingControllerImpl) Editing(pctx echo.Context) error {
 	}
 
 	return pctx.JSON(http.StatusOK, item)
+}
+
+func (c *itemManagingControllerImpl) Archiving(pctx echo.Context) error {
+	itemID, err := c.getItemID(pctx)
+	if err != nil {
+		return custom.Error(pctx, http.StatusBadRequest, err.Error())
+	}
+
+	if err := c.itemManagingService.Archiving(itemID); err != nil {
+		return custom.Error(pctx, http.StatusInternalServerError, err.Error())
+	}
+
+	return pctx.NoContent(http.StatusNoContent)
 }
 
 func (c *itemManagingControllerImpl) getItemID(pctx echo.Context) (uint64, error) {

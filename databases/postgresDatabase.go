@@ -47,6 +47,6 @@ func NewPosgresDatabase(conf *config.Database) Database {
 	return postgresDatabaseInstance
 }
 
-func (db *postgresDatabase) ConnectionGetting() *gorm.DB {
+func (db *postgresDatabase) Connect() *gorm.DB {
 	return db.DB
 }
