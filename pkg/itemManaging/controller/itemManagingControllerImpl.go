@@ -8,6 +8,7 @@ import (
 	"github.com/maxexq/isekei-shop-api/pkg/custom"
 	_itemManagingModel "github.com/maxexq/isekei-shop-api/pkg/itemManaging/model"
 	_itemManagingService "github.com/maxexq/isekei-shop-api/pkg/itemManaging/service"
+	"github.com/maxexq/isekei-shop-api/pkg/validation"
 )
 
 type itemManagingControllerImpl struct {
@@ -21,6 +22,11 @@ func NewItemManagingController(itemManagingService _itemManagingService.ItemMana
 }
 
 func (c *itemManagingControllerImpl) Creating(pctx echo.Context) error {
+	adminID, err := validation.AdminIDGetting(pctx)
+	if err != nil {
+		return custom.Error(pctx, http.StatusBadRequest, err)
+	}
+
 	itemCreatingReq := new(_itemManagingModel.ItemCreatingReq)
 
 	customEchoRequest := custom.NewCustomEchoRequest(pctx)
@@ -28,6 +34,7 @@ func (c *itemManagingControllerImpl) Creating(pctx echo.Context) error {
 	if err := customEchoRequest.Bind(itemCreatingReq); err != nil {
 		return custom.Error(pctx, http.StatusBadRequest, err)
 	}
+	itemCreatingReq.AdminID = adminID
 
 	item, err := c.itemManagingService.Creating(itemCreatingReq)
 	if err != nil {
