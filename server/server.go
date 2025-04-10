@@ -14,12 +14,17 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
 	"github.com/maxexq/isekei-shop-api/config"
-	"gorm.io/gorm"
+	"github.com/maxexq/isekei-shop-api/databases"
+
+	_adminRepository "github.com/maxexq/isekei-shop-api/pkg/admin/repository"
+	_oauth2Controller "github.com/maxexq/isekei-shop-api/pkg/oauth2/controller"
+	_oauth2Service "github.com/maxexq/isekei-shop-api/pkg/oauth2/service"
+	_playerRepository "github.com/maxexq/isekei-shop-api/pkg/player/repository"
 )
 
 type echoServer struct {
 	app  *echo.Echo
-	db   *gorm.DB
+	db   databases.Database
 	conf *config.Config
 }
 
@@ -28,7 +33,7 @@ var (
 	server *echoServer
 )
 
-func NewEchoServer(conf *config.Config, db *gorm.DB) *echoServer {
+func NewEchoServer(conf *config.Config, db databases.Database) *echoServer {
 	echoApp := echo.New()
 	echoApp.Logger.SetLevel(log.DEBUG)
 
@@ -38,14 +43,12 @@ func NewEchoServer(conf *config.Config, db *gorm.DB) *echoServer {
 			db:   db,
 			conf: conf,
 		}
-
 	})
 
 	return server
 }
 
 func (s *echoServer) Start() {
-
 	corsMiddleware := getCORSMiddleware(s.conf.Server.AllowedOrigins)
 	bodyLimitMiddleware := getBodyLimitMiddleware(s.conf.Server.BodyLimit)
 	timeOutMiddleware := getTimeoutMiddleware(s.conf.Server.TimeOut)
@@ -56,7 +59,13 @@ func (s *echoServer) Start() {
 	s.app.Use(bodyLimitMiddleware)
 	s.app.Use(timeOutMiddleware)
 
+	authorizingMiddleware := s.getAuthorizingMiddleware()
+
 	s.app.GET("/v1/health", s.healthCheck)
+
+	s.initItemShopRouter()
+	s.initItemManagingRouter(authorizingMiddleware)
+	s.initOAuth2Router()
 
 	quitCh := make(chan os.Signal, 1)
 	signal.Notify(quitCh, syscall.SIGINT, syscall.SIGTERM)
@@ -111,4 +120,23 @@ func getCORSMiddleware(allowOrigins []string) echo.MiddlewareFunc {
 
 func getBodyLimitMiddleware(bodyLimit string) echo.MiddlewareFunc {
 	return middleware.BodyLimit(bodyLimit)
+}
+
+func (s *echoServer) getAuthorizingMiddleware() *authorizingMiddleware {
+	playerRepository := _playerRepository.NewPlayerRepositoryImpl(s.db, s.app.Logger)
+	adminRepository := _adminRepository.NewAdminRepositoryImpl(s.db, s.app.Logger)
+
+	oauth2Service := _oauth2Service.NewGoogleOAuth2(playerRepository, adminRepository)
+
+	oauth2Controller := _oauth2Controller.NewGoogleOAuth2Controller(
+		oauth2Service,
+		s.conf.OAuth2, s.app.Logger,
+	)
+
+	return &authorizingMiddleware{
+		oauth2Controller: oauth2Controller,
+		oauth2Conf:       s.conf.OAuth2,
+		logger:           s.app.Logger,
+	}
+
 }
