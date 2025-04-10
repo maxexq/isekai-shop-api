@@ -4,6 +4,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/maxexq/isekei-shop-api/databases"
 	"github.com/maxexq/isekei-shop-api/entities"
+	"gorm.io/gorm"
 
 	_playerCoinException "github.com/maxexq/isekei-shop-api/pkg/playerCoin/exception"
 	_playerCoinModel "github.com/maxexq/isekei-shop-api/pkg/playerCoin/model"
@@ -21,10 +22,15 @@ func NewPlayerCoinRepoImpl(db databases.Database, logger echo.Logger) PlayerCoin
 	}
 }
 
-func (r *playerCoinRepoImpl) CoinAdding(playerCoinEntity *entities.PlayerCoin) (*entities.PlayerCoin, error) {
+func (r *playerCoinRepoImpl) CoinAdding(tx *gorm.DB, playerCoinEntity *entities.PlayerCoin) (*entities.PlayerCoin, error) {
+	conn := r.db.Connect()
+	if tx != nil {
+		conn = tx
+	}
+
 	playerCoin := new(entities.PlayerCoin)
 
-	if err := r.db.Connect().Create(playerCoinEntity).Scan(playerCoin).Error; err != nil {
+	if err := conn.Create(playerCoinEntity).Scan(playerCoin).Error; err != nil {
 		r.logger.Errorf("creating player coin failed: %s", err.Error())
 
 		return nil, &_playerCoinException.CoinAdding{}

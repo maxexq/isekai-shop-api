@@ -21,6 +21,18 @@ func NewItemShopRepositoryImpl(db databases.Database, logger echo.Logger) ItemSh
 	return &itemShopRepositoryImpl{db, logger}
 }
 
+func (r *itemShopRepositoryImpl) TransactionBegin() *gorm.DB {
+	return r.db.Connect().Begin()
+}
+
+func (r *itemShopRepositoryImpl) TransactionRollback(tx *gorm.DB) error {
+	return tx.Rollback().Error
+}
+
+func (r *itemShopRepositoryImpl) TransactionCommit(tx *gorm.DB) error {
+	return tx.Commit().Error
+}
+
 func (r *itemShopRepositoryImpl) Listing(itemFilter *_itemShopModel.ItemFilter) ([]*entities.Item, error) {
 	itemList := make([]*entities.Item, 0)
 
@@ -76,4 +88,33 @@ func (r *itemShopRepositoryImpl) buildItemFilterQuery(itemFilter *_itemShopModel
 	}
 
 	return query
+}
+
+func (r *itemShopRepositoryImpl) FindByIDList(itemIDs []uint64) ([]*entities.Item, error) {
+	itemList := make([]*entities.Item, 0)
+
+	if err := r.db.Connect().Model(&entities.Item{}).Where("id in ?", itemIDs).Find(&itemList).Error; err != nil {
+		r.logger.Errorf("Failed to find items by ID list: %s", err.Error())
+
+		return nil, &_itemShopException.ItemListing{}
+	}
+
+	return itemList, nil
+}
+
+func (r *itemShopRepositoryImpl) PurchaseHistoryRecording(tx *gorm.DB, purchaseEntity *entities.PurchaseHistory) (*entities.PurchaseHistory, error) {
+	conn := r.db.Connect()
+	if tx != nil {
+		conn = tx
+	}
+
+	insertedPurchaseHistory := new(entities.PurchaseHistory)
+
+	if err := conn.Create(purchaseEntity).Scan(insertedPurchaseHistory).Error; err != nil {
+		r.logger.Errorf("Creating purchase history failed: %s", err.Error())
+
+		return nil, &_itemShopException.HistoryOfPurchaseRecording{}
+	}
+
+	return insertedPurchaseHistory, nil
 }
