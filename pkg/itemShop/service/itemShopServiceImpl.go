@@ -80,6 +80,8 @@ func (s *itemShopServiceImpl) Buying(buyingReq *_itemShopModel.BuyingReq) (*_pla
 		ItemPrice:       itemEntities.Price,
 		ItemPicture:     itemEntities.Picture,
 		Quantity:        buyingReq.Quantity,
+		IsBuying:        true,
+		// refactor IsBuying  to enum
 	})
 
 	if err != nil {
@@ -129,7 +131,67 @@ func (s *itemShopServiceImpl) Buying(buyingReq *_itemShopModel.BuyingReq) (*_pla
 // 6. Return the updated player coins
 // 7. Return the sold item and updated player coins
 func (s *itemShopServiceImpl) Selling(sellingReq *_itemShopModel.SellingReq) (*_playerCoinModel.PlayerCoin, error) {
-	return nil, nil
+	itemEntities, err := s.itemShopRepository.FindByID(sellingReq.ItemID)
+	if err != nil {
+		return nil, err
+	}
+
+	totalPrice := s.totalPriceCalculation(itemEntities.ToItemModel(), sellingReq.Quantity)
+	totalPrice = totalPrice / 2
+
+	if err := s.checkPlayerItem(sellingReq.PlayerID, sellingReq.ItemID, sellingReq.Quantity); err != nil {
+		return nil, err
+	}
+
+	tx := s.itemShopRepository.TransactionBegin()
+	purchaseRecording, err := s.itemShopRepository.PurchaseHistoryRecording(tx, &entities.PurchaseHistory{
+		PlayerID:        sellingReq.PlayerID,
+		ItemID:          itemEntities.ID,
+		ItemName:        itemEntities.Name,
+		ItemDescription: itemEntities.Description,
+		ItemPrice:       itemEntities.Price,
+		ItemPicture:     itemEntities.Picture,
+		Quantity:        sellingReq.Quantity,
+		IsBuying:        false,
+		// refactor IsBuying  to enum
+	})
+
+	if err != nil {
+		s.itemShopRepository.TransactionRollback(tx)
+		return nil, err
+	}
+
+	s.logger.Infof("Purchase history recorded: %s", purchaseRecording.ID)
+
+	playerCoin, err := s.playerCoinRepository.CoinAdding(tx, &entities.PlayerCoin{
+		PlayerID: sellingReq.PlayerID,
+		Amount:   totalPrice,
+	})
+
+	if err != nil {
+		s.itemShopRepository.TransactionRollback(tx)
+		return nil, err
+	}
+
+	s.logger.Infof("Player coin deducted: %s", playerCoin.Amount)
+
+	if err := s.inventoryRepository.Removing(
+		tx,
+		sellingReq.PlayerID,
+		itemEntities.ID,
+		int(sellingReq.Quantity),
+	); err != nil {
+		s.itemShopRepository.TransactionRollback(tx)
+		return nil, err
+	}
+
+	s.logger.Infof("Inventory itemID: %d,  removed : %d", sellingReq.ItemID, sellingReq.Quantity)
+
+	if err := s.itemShopRepository.TransactionCommit(tx); err != nil {
+		return nil, err
+	}
+
+	return playerCoin.ToPlayerCoinModel(), nil
 }
 
 func (s *itemShopServiceImpl) totalPageCalculation(totalItems int64, size int64) int64 {
@@ -172,6 +234,17 @@ func (s *itemShopServiceImpl) checkPlayerCoin(playerID string, totalPrice int64)
 		s.logger.Errorf("Player coin is not enough: %s", err)
 
 		return &_itemShopException.CoinNotEnough{}
+	}
+
+	return nil
+}
+
+func (s *itemShopServiceImpl) checkPlayerItem(playerID string, itemID uint64, qty uint) error {
+	itemCounting := s.inventoryRepository.PlayerItemCounting(playerID, itemID)
+	if itemCounting < int64(qty) {
+		s.logger.Errorf("Player item is not enough: %s", itemID)
+
+		return &_itemShopException.ItemNotEnough{}
 	}
 
 	return nil

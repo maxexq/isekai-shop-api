@@ -8,4 +8,5 @@ import (
 type ItemShopService interface {
 	Listing(itemFilter *_itemShopModel.ItemFilter) (*_itemShopModel.ItemResult, error)
 	Buying(buyingReq *_itemShopModel.BuyingReq) (*_playerCoinModel.PlayerCoin, error)
+	Selling(buyingReq *_itemShopModel.SellingReq) (*_playerCoinModel.PlayerCoin, error)
 }

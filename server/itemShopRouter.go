@@ -20,5 +20,6 @@ func (s *echoServer) initItemShopRouter(m *authorizingMiddleware) {
 	itemShopController := _itemShopController.NewItemShopController(itemShopService)
 
 	router.GET("", itemShopController.Listing)
-	router.POST("/buying", itemShopController.Buying, m.PlayerAuthorizing) // /v1/item-shop/buying?playerID=1&serverID=1&itemID=1&amount=1
+	router.POST("/buying", itemShopController.Buying, m.PlayerAuthorizing)   // /v1/item-shop/buying?playerID=1&serverID=1&itemID=1&amount=1
+	router.POST("/selling", itemShopController.Selling, m.PlayerAuthorizing) // /v1/item-shop/selling?playerID=1&serverID=1&itemID=1&amount=1
 }
